@@ -1,0 +1,28 @@
+{
+  "name": "budget-variance-tracker",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "concurrently -n backend,frontend -c blue,green \"npm run dev -w backend\" \"npm run dev -w frontend\"",
+    "test": "npm test -w backend && npm test -w frontend",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:local": "node backend/scripts/localMongo.js",
+    "migrate:up": "npm run migrate:up -w backend",
+    "migrate:down": "npm run migrate:down -w backend",
+    "migrate:status": "npm run migrate:status -w backend",
+    "seed:dummy": "npm run seed:dummy -w backend",
+    "seed:reset": "npm run seed:reset -w backend",
+    "db:setup": "npm run migrate:up && npm run seed:dummy"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}
