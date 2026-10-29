@@ -1,0 +1,2 @@
+Add a GET /healthz endpoint to bud_variance_har that returns HTTP 200.
+Runtime detected: Node.js
