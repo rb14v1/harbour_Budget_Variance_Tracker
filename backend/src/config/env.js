@@ -10,6 +10,10 @@ const schema = z.object({
   CLIENT_ORIGIN: z.string().url(),
   ORG_TIMEZONE: z.string().default('Asia/Kolkata'),
   CURRENCY: z.string().default('INR'),
+  JWT_EXPIRES_IN: z.string().min(1).default('8h'),
+  // Cookie max-age in milliseconds
+  COOKIE_MAX_AGE: z.coerce.number().int().positive().default(8 * 60 * 60 * 1000),
+  LOGIN_RATE_LIMIT: z.coerce.number().int().positive().default(10),
 });
 
 const parsed = schema.safeParse(process.env);
@@ -25,7 +29,7 @@ module.exports = {
   isProduction: env.NODE_ENV === 'production',
   isTest: env.NODE_ENV === 'test',
   bcryptRounds: env.NODE_ENV === 'test' ? 4 : 12,
-  loginRateLimitMax: env.NODE_ENV === 'test' ? 1000 : 10,
-  jwtExpiresIn: '8h',
-  cookieMaxAgeMs: 8 * 60 * 60 * 1000,
+  loginRateLimitMax: env.NODE_ENV === 'test' ? 1000 : env.LOGIN_RATE_LIMIT,
+  jwtExpiresIn: env.JWT_EXPIRES_IN,
+  cookieMaxAgeMs: env.COOKIE_MAX_AGE,
 };
