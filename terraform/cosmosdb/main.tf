@@ -24,6 +24,18 @@ variable "location" {
 variable "backup_storage_location" {
   description = "Secondary Azure region used for storing continuous backups (must differ from primary location)."
   type        = string
+
+  validation {
+    condition     = length(trimspace(var.backup_storage_location)) > 0
+    error_message = "backup_storage_location must be set to a secondary Azure region different from location."
+  }
+}
+
+check "backup_region_differs_from_primary" {
+  assert {
+    condition     = lower(replace(var.backup_storage_location, " ", "")) != lower(replace(var.location, " ", ""))
+    error_message = "backup_storage_location must be a different Azure region from location so backups are stored cross-region."
+  }
 }
 
 # ---------------------------------------------------------------------------
@@ -39,13 +51,17 @@ resource "azurerm_cosmosdb_account" "mongo" {
 
   # Continuous backup enables point-in-time recovery (PITR).
   # tier = "Continuous30Days" satisfies the ≥30-day retention requirement.
+  # NOTE: `storage_redundancy` is only valid for Periodic backups in azurerm;
+  # with Continuous backup, Azure stores backups in every region the account
+  # is replicated to, so cross-region backup storage comes from the second
+  # geo_location below.
   backup {
-    type                = "Continuous"
-    tier                = "Continuous30Days"
-    storage_redundancy  = "Geo"          # backup data is geo-redundant (cross-region)
+    type = "Continuous"
+    tier = "Continuous30Days"
   }
 
-  # Geo-redundancy ensures the backup copy lives in a separate region.
+  # The secondary geo_location means continuous backups are also stored in a
+  # separate region from the primary database.
   geo_location {
     location          = var.location
     failover_priority = 0
