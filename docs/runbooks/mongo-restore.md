@@ -7,7 +7,7 @@
 
 ## Overview
 
-The Cosmos DB account `cosmosmongo-bud-variance-har` is configured with **Continuous 30-Day backup** (PITR). Backups are stored in a geo-redundant secondary region (separate from the primary region) and are managed automatically by Azure — no manual snapshot jobs are needed.
+The Cosmos DB account `cosmosmongo-bud-variance-har` is configured with **Continuous 30-Day backup** (PITR). With continuous backup, Azure keeps backups in every region the account is replicated to; the Terraform (`terraform/cosmosdb/main.tf`) adds a second `geo_location` (`backup_storage_location`), so a backup copy is always held in a region separate from the primary. (`storage_redundancy` is only for Periodic backups and is deliberately not set.) Backups are managed automatically by Azure, so no manual snapshot jobs are needed.
 
 Point-in-time recovery lets you restore the entire account, or a single database/collection, to any second within the last **30 days**.
 
@@ -100,6 +100,20 @@ az cosmosdb restore \
 - [ ] Update this document if the procedure changed.
 
 ---
+
+## Restore test procedure (pre-go-live and after major migrations)
+
+1. Confirm the backup policy on the live account:
+   ```bash
+   az cosmosdb show --name cosmosmongo-bud-variance-har --resource-group <live-rg> \
+     --query "{backup:backupPolicy, regions:locations[].locationName}"
+   ```
+   Expect `type: Continuous`, `tier: Continuous30Days`, and at least two regions.
+2. Pick a restore timestamp at least 15 minutes in the past, then run step 2 (full account restore) into a scratch resource group.
+3. Run step 4 (validate restored data) against the restored account and compare document counts with the live account.
+4. Write down the time from starting the restore until the account was usable. This is the measured RTO.
+5. Delete the restored scratch account.
+6. Add a row to the log below. Go-live is blocked until a row has Result = **PASS**.
 
 ## Restore test log
 
