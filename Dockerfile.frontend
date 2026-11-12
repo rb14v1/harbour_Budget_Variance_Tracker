@@ -5,6 +5,7 @@ WORKDIR /app
 COPY . .
 RUN npm ci || npm install || npm install --legacy-peer-deps
 COPY . .
+RUN cd frontend && npx vite build
 
 
 FROM node:20-alpine
@@ -18,6 +19,8 @@ RUN addgroup --system --gid 1001 nodejs \
 
 COPY --from=builder --chown=nodeuser:nodejs /app ./
 
+RUN printf '%s\n' 'const http=require("http"),fs=require("fs"),path=require("path");const root="/app/frontend/dist";const types={".html":"text/html",".js":"application/javascript",".css":"text/css",".json":"application/json",".svg":"image/svg+xml",".png":"image/png",".ico":"image/x-icon"};http.createServer((req,res)=>{const url=decodeURIComponent(req.url.split("?")[0]);if(url==="/healthz"){res.writeHead(200);return res.end("ok");}let f=path.join(root,path.normalize(url));if(!f.startsWith(root)||!fs.existsSync(f)||fs.statSync(f).isDirectory()){f=path.join(root,"index.html");}res.writeHead(200,{"Content-Type":types[path.extname(f)]||"application/octet-stream"});fs.createReadStream(f).pipe(res);}).listen(8080,"0.0.0.0");' > /app/server.js
+
 USER nodeuser
 
 EXPOSE 8080
@@ -25,4 +28,4 @@ EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
   CMD wget -qO- http://localhost:8080/healthz || exit 1
 
-CMD ["npm", "start"]
+CMD ["node", "server.js"]
